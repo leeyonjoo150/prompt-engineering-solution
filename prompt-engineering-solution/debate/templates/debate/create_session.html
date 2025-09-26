@@ -1,0 +1,91 @@
+{% extends 'debate/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> 새로운 토론 세션 생성
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">토론 제목</label>
+                        <input type="text" class="form-control" id="title" name="title"
+                               placeholder="예: 인공지능의 미래에 대한 토론" required>
+                        <div class="form-text">토론의 제목을 입력하세요</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="topic" class="form-label">토론 주제</label>
+                        <textarea class="form-control" id="topic" name="topic" rows="4"
+                                  placeholder="예: 인공지능 기술의 발전이 인류에게 도움이 될까요, 해가 될까요?" required></textarea>
+                        <div class="form-text">두 AI가 토론할 구체적인 주제를 입력하세요</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ai1_prompt" class="form-label">
+                                    <span class="ai1-badge">AI1 (긍정)</span> 시스템 프롬프트
+                                </label>
+                                <textarea class="form-control" id="ai1_prompt" name="ai1_prompt" rows="3"
+                                          placeholder="긍정적인 관점에서 토론하세요.">긍정적인 관점에서 토론하세요. 주제에 대해 찬성하는 입장을 취하고, 근거를 들어 논리적으로 설명해주세요.</textarea>
+                                <div class="form-text">AI1의 역할과 관점을 설정합니다</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ai2_prompt" class="form-label">
+                                    <span class="ai2-badge">AI2 (부정)</span> 시스템 프롬프트
+                                </label>
+                                <textarea class="form-control" id="ai2_prompt" name="ai2_prompt" rows="3"
+                                          placeholder="부정적인 관점에서 토론하세요.">부정적인 관점에서 토론하세요. 주제에 대해 반대하는 입장을 취하고, 근거를 들어 논리적으로 반박해주세요.</textarea>
+                                <div class="form-text">AI2의 역할과 관점을 설정합니다</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="max_rounds" class="form-label">최대 라운드 수</label>
+                        <select class="form-select" id="max_rounds" name="max_rounds">
+                            <option value="3">3 라운드</option>
+                            <option value="5" selected>5 라운드</option>
+                            <option value="7">7 라운드</option>
+                            <option value="10">10 라운드</option>
+                        </select>
+                        <div class="form-text">토론할 최대 라운드 수를 설정하세요</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'debate:home' %}" class="btn btn-outline-secondary me-md-2">
+                            <i class="bi bi-arrow-left"></i> 취소
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-play-circle"></i> 토론 시작하기
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8 mx-auto">
+        <div class="alert alert-info">
+            <h6><i class="bi bi-info-circle"></i> 토론 진행 방식</h6>
+            <ul class="mb-0">
+                <li><strong>AI1 (파란색)</strong>: 긍정적인 관점에서 먼저 발언합니다</li>
+                <li><strong>AI2 (빨간색)</strong>: 부정적인 관점에서 반박합니다</li>
+                <li>설정한 라운드 수만큼 번갈아가며 토론이 진행됩니다</li>
+                <li>토론 완료 후 각 AI의 성과를 평가할 수 있습니다</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

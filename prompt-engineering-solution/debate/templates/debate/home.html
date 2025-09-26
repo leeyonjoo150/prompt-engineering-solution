@@ -1,0 +1,125 @@
+{% extends 'debate/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="text-center mb-5">
+            <h1 class="display-4 mb-3">
+                <i class="bi bi-robot text-primary"></i>
+                AI 토론 시스템
+            </h1>
+            <p class="lead text-muted">
+                두 AI가 주제에 대해 토론하는 모습을 지켜보세요
+            </p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="text-center mb-4">
+            <a href="{% url 'debate:create_session' %}" class="btn btn-primary btn-lg">
+                <i class="bi bi-plus-circle"></i> 새로운 토론 시작하기
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if sessions %}
+<div class="row">
+    <div class="col-12">
+        <h3 class="mb-4">
+            <i class="bi bi-clock-history"></i> 최근 토론
+        </h3>
+        <div class="row">
+            {% for session in sessions %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card session-card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">{{ session.title|truncatechars:30 }}</h6>
+                            <span class="status-badge status-{{ session.status }}">
+                                {% if session.status == 'created' %}
+                                    생성됨
+                                {% elif session.status == 'in_progress' %}
+                                    진행중
+                                {% else %}
+                                    완료됨
+                                {% endif %}
+                            </span>
+                        </div>
+                        <p class="card-text text-muted small mb-3">
+                            {{ session.topic|truncatechars:60 }}
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                라운드: {{ session.current_round }}/{{ session.max_rounds }}
+                            </small>
+                            <a href="{% url 'debate:session_detail' session.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> 보기
+                            </a>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar3"></i>
+                                {{ session.created_at|date:"Y-m-d H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-3">
+            <a href="{% url 'debate:session_list' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-list"></i> 모든 토론 보기
+            </a>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="text-center">
+            <i class="bi bi-chat-dots text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3 text-muted">아직 토론이 없습니다</h4>
+            <p class="text-muted">첫 번째 토론을 시작해보세요!</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="row text-center">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-robot text-primary" style="font-size: 2rem;"></i>
+                        <h5 class="mt-3">AI vs AI</h5>
+                        <p class="text-muted">두 AI가 서로 다른 관점에서 토론합니다</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-graph-up text-success" style="font-size: 2rem;"></i>
+                        <h5 class="mt-3">실시간 토론</h5>
+                        <p class="text-muted">실시간으로 진행되는 토론을 관찰할 수 있습니다</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-star text-warning" style="font-size: 2rem;"></i>
+                        <h5 class="mt-3">토론 평가</h5>
+                        <p class="text-muted">토론 완료 후 각 AI의 성과를 평가할 수 있습니다</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
