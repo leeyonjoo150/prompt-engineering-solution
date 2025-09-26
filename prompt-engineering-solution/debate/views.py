@@ -57,7 +57,7 @@ def session_detail(request, session_id):
     })
 
 
-#@require_http_methods(["POST"])
+@require_http_methods(["POST"])
 def start_debate(request, session_id):
     """토론 시작/진행"""
     session = get_object_or_404(DebateSession, id=session_id)
