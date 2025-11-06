@@ -1,0 +1,416 @@
+{% extends 'debate/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="control-panel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h2 class="mb-1">{{ session.title }}</h2>
+                    <p class="text-muted mb-0">{{ session.topic }}</p>
+                </div>
+                <div class="text-end">
+                    <div class="round-counter mb-2">
+                        라운드 {{ session.current_round }}/{{ session.max_rounds }}
+                    </div>
+                    <span class="status-badge status-{{ session.status }}">
+                        {% if session.status == 'created' %}
+                            생성됨
+                        {% elif session.status == 'in_progress' %}
+                            진행중
+                        {% else %}
+                            완료됨
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+
+            {% if session.status != 'completed' %}
+            <div class="d-flex gap-2">
+                <button id="startDebateBtn" class="btn btn-success">
+                    <i class="bi bi-play-circle"></i>
+                    {% if session.status == 'created' %}
+                        토론 시작
+                    {% else %}
+                        다음 발언
+                    {% endif %}
+                </button>
+                <button id="autoModeBtn" class="btn btn-info" data-auto="false">
+                    <i class="bi bi-arrow-repeat"></i> 자동 진행
+                </button>
+            </div>
+            {% else %}
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#evaluateModal">
+                    <i class="bi bi-star"></i> 토론 평가하기
+                </button>
+                <a href="{% url 'debate:create_session' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-plus-circle"></i> 새 토론 시작
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div id="messages-container">
+            {% for message in messages %}
+            <div class="message-card {% if message.speaker == 'ai1' %}ai1-message{% elif message.speaker == 'ai2' %}ai2-message{% else %}user-message{% endif %}">
+                <div class="speaker-badge {% if message.speaker == 'ai1' %}ai1-badge{% elif message.speaker == 'ai2' %}ai2-badge{% else %}user-badge{% endif %}">
+                    {% if message.speaker == 'user' %}
+                        <i class="bi bi-person"></i> 사용자
+                    {% elif message.speaker == 'ai1' %}
+                        <i class="bi bi-robot"></i> AI1 (긍정)
+                    {% else %}
+                        <i class="bi bi-robot"></i> AI2 (부정)
+                    {% endif %}
+                    {% if message.round_number > 0 %}
+                        - Round {{ message.round_number }}
+                    {% endif %}
+                </div>
+                <div class="message-content">
+                    {{ message.content|linebreaksbr }}
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">
+                        {{ message.created_at|date:"Y-m-d H:i:s" }}
+                    </small>
+                    {% if message.response_time %}
+                    <small class="text-muted">
+                        <i class="bi bi-clock"></i> {{ message.response_time|floatformat:2 }}초
+                    </small>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="loading-indicator" class="text-center py-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">응답 생성 중...</span>
+            </div>
+            <p class="mt-2 text-muted">AI가 응답을 생성하고 있습니다...</p>
+        </div>
+    </div>
+</div>
+
+<!-- 평가 모달 -->
+<div class="modal fade" id="evaluateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">토론 평가</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="evaluateForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="ai1-badge">AI1 (긍정) 평가</h6>
+                            <div class="mb-3">
+                                <label class="form-label">점수 (1-10)</label>
+                                <select class="form-select" name="ai1_score" required>
+                                    <option value="">선택하세요</option>
+                                    {% for i in "0123456789"|make_list %}
+                                        <option value="{{ forloop.counter }}">{{ forloop.counter }}점</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">코멘트</label>
+                                <textarea class="form-control" name="ai1_comment" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="ai2-badge">AI2 (부정) 평가</h6>
+                            <div class="mb-3">
+                                <label class="form-label">점수 (1-10)</label>
+                                <select class="form-select" name="ai2_score" required>
+                                    <option value="">선택하세요</option>
+                                    {% for i in "0123456789"|make_list %}
+                                        <option value="{{ forloop.counter }}">{{ forloop.counter }}점</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">코멘트</label>
+                                <textarea class="form-control" name="ai2_comment" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">승자</label>
+                        <select class="form-select" name="winner">
+                            <option value="">선택하세요</option>
+                            <option value="ai1">AI1 (긍정)</option>
+                            <option value="ai2">AI2 (부정)</option>
+                            <option value="draw">무승부</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">전체 코멘트</label>
+                        <textarea class="form-control" name="overall_comment" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                <button type="button" class="btn btn-primary" id="submitEvaluation">평가 제출</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// CSRF 토큰 가져오기
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+const csrftoken = getCookie('csrftoken');
+
+document.addEventListener('DOMContentLoaded', function() {
+    const startBtn = document.getElementById('startDebateBtn');
+    const autoBtn = document.getElementById('autoModeBtn');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const messagesContainer = document.getElementById('messages-container');
+    const sessionId = '{{ session.id }}';
+    let autoMode = false;
+    let isProcessing = false;
+
+    startBtn.addEventListener('click', function() {
+        if (!isProcessing) {
+            startDebate();
+        }
+    });
+
+    autoBtn.addEventListener('click', function() {
+        autoMode = !autoMode;
+        console.log('자동 모드 토글:', autoMode);
+        if (autoMode) {
+            autoBtn.innerHTML = '<i class="bi bi-pause-circle"></i> 자동 중지';
+            autoBtn.classList.remove('btn-info');
+            autoBtn.classList.add('btn-warning');
+            console.log('자동 모드 시작, isProcessing:', isProcessing);
+            if (!isProcessing) {
+                console.log('첫 번째 자동 발언 시작');
+                startDebate();
+            }
+        } else {
+            console.log('자동 모드 중지');
+            autoBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 자동 진행';
+            autoBtn.classList.remove('btn-warning');
+            autoBtn.classList.add('btn-info');
+        }
+    });
+
+    function startDebate() {
+        if (isProcessing) return;
+
+        isProcessing = true;
+        startBtn.disabled = true;
+        loadingIndicator.style.display = 'block';
+
+        fetch(`/session/${sessionId}/start/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // 토론 완료 처리를 먼저 확인
+            if (data.completed) {
+                console.log('토론 완료됨');
+                alert('🎉 토론이 완료되었습니다! 모든 라운드가 끝났습니다.');
+                isProcessing = false;
+                startBtn.disabled = false;
+                autoMode = false;
+                autoBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 자동 진행';
+                autoBtn.classList.remove('btn-warning');
+                autoBtn.classList.add('btn-info');
+                startBtn.style.display = 'none';
+                autoBtn.style.display = 'none';
+                setTimeout(() => location.reload(), 1000);
+                return;
+            }
+
+            if (data.success) {
+                addMessage(data.message);
+                updateSessionInfo(data.session);
+
+                if (autoMode && data.session && data.session.status !== 'completed') {
+                    // 자동 모드: 처리 상태 해제 후 2초 후 다음 발언 진행
+                    console.log('자동 모드 활성 - 2초 후 다음 발언 시작');
+                    console.log('현재 라운드:', data.session.current_round, '/', data.session.max_rounds);
+                    isProcessing = false;
+                    startBtn.disabled = false;
+                    setTimeout(() => {
+                        if (autoMode) { // 타이머 동안 자동모드가 해제되지 않았다면
+                            console.log('자동 모드로 다음 발언 시작');
+                            startDebate();
+                        }
+                    }, 2000);
+                } else {
+                    // 수동 모드 또는 토론 완료: 버튼 활성화
+                    isProcessing = false;
+                    startBtn.disabled = false;
+                    if (data.session && data.session.status === 'completed') {
+                        autoMode = false; // 토론 완료시 자동 모드 해제
+                        autoBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 자동 진행';
+                        autoBtn.classList.remove('btn-warning');
+                        autoBtn.classList.add('btn-info');
+                        alert('🎉 토론이 완료되었습니다!');
+                        startBtn.style.display = 'none';
+                        autoBtn.style.display = 'none';
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                }
+            } else {
+                alert('오류: ' + (data.error || '알 수 없는 오류가 발생했습니다.'));
+                isProcessing = false;
+                startBtn.disabled = false;
+                // 오류 발생시 자동 모드 해제
+                autoMode = false;
+                autoBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 자동 진행';
+                autoBtn.classList.remove('btn-warning');
+                autoBtn.classList.add('btn-info');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('네트워크 오류가 발생했습니다.');
+            isProcessing = false;
+            startBtn.disabled = false;
+            // 네트워크 오류시 자동 모드 해제
+            autoMode = false;
+            autoBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> 자동 진행';
+            autoBtn.classList.remove('btn-warning');
+            autoBtn.classList.add('btn-info');
+        })
+        .finally(() => {
+            loadingIndicator.style.display = 'none';
+        });
+    }
+
+    function addMessage(messageData) {
+        const messageDiv = document.createElement('div');
+        const speakerClass = messageData.speaker === 'ai1' ? 'ai1-message' : 'ai2-message';
+        const badgeClass = messageData.speaker === 'ai1' ? 'ai1-badge' : 'ai2-badge';
+        const speakerName = messageData.speaker === 'ai1' ? 'AI1 (긍정)' : 'AI2 (부정)';
+
+        messageDiv.className = `message-card ${speakerClass}`;
+        messageDiv.innerHTML = `
+            <div class="speaker-badge ${badgeClass}">
+                <i class="bi bi-robot"></i> ${speakerName} - Round ${messageData.round_number}
+            </div>
+            <div class="message-content">
+                ${messageData.content.replace(/\n/g, '<br>')}
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <small class="text-muted">
+                    ${new Date(messageData.created_at).toLocaleString()}
+                </small>
+            </div>
+        `;
+
+        messagesContainer.appendChild(messageDiv);
+        messageDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function updateSessionInfo(sessionData) {
+        const roundCounter = document.querySelector('.round-counter');
+        if (roundCounter) {
+            roundCounter.textContent = `라운드 ${sessionData.current_round}/${sessionData.max_rounds}`;
+        }
+    }
+
+    // 평가 제출
+    const submitButton = document.getElementById('submitEvaluation');
+    if (submitButton) {
+        console.log('평가 제출 버튼을 찾았습니다.');
+        submitButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            console.log('평가 제출 버튼 클릭됨!');
+
+            const form = document.getElementById('evaluateForm');
+            if (!form) {
+                console.error('평가 폼을 찾을 수 없습니다!');
+                alert('평가 폼을 찾을 수 없습니다.');
+                return;
+            }
+
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+            console.log('수집된 폼 데이터:', data);
+            console.log('CSRF 토큰:', csrftoken);
+            console.log('세션 ID:', sessionId);
+
+            // 필수 항목 검증
+            if (!data.ai1_score || !data.ai2_score) {
+                console.log('필수 점수 누락 - ai1_score:', data.ai1_score, 'ai2_score:', data.ai2_score);
+                alert('AI1과 AI2의 점수를 모두 입력해주세요.');
+                return;
+            }
+
+            console.log('평가 제출 요청 시작...');
+            fetch(`/session/${sessionId}/evaluate/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                console.log('서버 응답 받음:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('평가 제출 응답:', data);
+                if (data.success) {
+                    alert('평가가 성공적으로 제출되었습니다!');
+                    // 모달 닫기
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('evaluateModal'));
+                    if (modal) {
+                        modal.hide();
+                    }
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    alert('평가 제출 중 오류가 발생했습니다: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('평가 제출 에러:', error);
+                alert('네트워크 오류가 발생했습니다: ' + error.message);
+            });
+        });
+    } else {
+        console.error('평가 제출 버튼을 찾을 수 없습니다!');
+    }
+});
+</script>
+{% endblock %}

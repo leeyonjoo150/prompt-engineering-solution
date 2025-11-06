@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 토론 시스템</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --ai1-color: #0066cc;
+            --ai2-color: #cc3300;
+            --bg-color: #f8f9fa;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .ai1-message {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-left: 4px solid var(--ai1-color);
+        }
+
+        .ai2-message {
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-left: 4px solid var(--ai2-color);
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            border-left: 4px solid #9c27b0;
+        }
+
+        .message-card {
+            border-radius: 12px;
+            margin-bottom: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .speaker-badge {
+            font-weight: bold;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .ai1-badge {
+            background-color: var(--ai1-color);
+            color: white;
+        }
+
+        .ai2-badge {
+            background-color: var(--ai2-color);
+            color: white;
+        }
+
+        .user-badge {
+            background-color: #9c27b0;
+            color: white;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .btn-ai1 {
+            background: var(--ai1-color);
+            border: none;
+            color: white;
+        }
+
+        .btn-ai1:hover {
+            background: #0052a3;
+            color: white;
+        }
+
+        .btn-ai2 {
+            background: var(--ai2-color);
+            border: none;
+            color: white;
+        }
+
+        .btn-ai2:hover {
+            background: #a32600;
+            color: white;
+        }
+
+        .session-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .session-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .status-created {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-in_progress {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+
+        .status-completed {
+            background-color: #e8f5e8;
+            color: #388e3c;
+        }
+
+        .round-counter {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'debate:home' %}">
+                <i class="bi bi-chat-dots"></i> AI 토론 시스템
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'debate:home' %}">
+                            <i class="bi bi-house"></i> 홈
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'debate:create_session' %}">
+                            <i class="bi bi-plus-circle"></i> 새 토론
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'debate:session_list' %}">
+                            <i class="bi bi-list"></i> 토론 목록
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // CSRF 토큰 설정
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        const csrftoken = getCookie('csrftoken');
+    </script>
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>
